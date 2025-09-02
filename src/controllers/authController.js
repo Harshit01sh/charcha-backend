@@ -1,39 +1,78 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import models from "../models/index.js";
+import models from "../models/user.models.js";
 
 dotenv.config();
 
-const User = models.users; // sequelize-auto generates lowercase table names
+const User = models.users; // sequelize-auto usually makes plural lowercase names
 
+// 🔹 Register User
 export const registerUser = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
+    // check if user already exists (by email OR username)
+    const existingUser = await User.findOne({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: "❌ Email already registered" });
+    }
+
+    // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await User.create({ username, email, password: hashedPassword });
+    // create user
+    const newUser = await User.create({
+      username,
+      email,
+      password: hashedPassword,
+    });
 
-    res.status(201).json({ message: "✅ User registered successfully" });
+    // generate token
+    const token = jwt.sign(
+      { id: newUser.id, email: newUser.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.status(201).json({
+      message: "✅ User registered successfully",
+      user: { id: newUser.id, username: newUser.username, email: newUser.email },
+      token,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// 🔹 Login User
 export const loginUser = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    const user = await User.findOne({ where: { username } });
+    // find user
+    const user = await User.findOne({ where: { email } });
     if (!user) return res.status(400).json({ error: "❌ User not found" });
 
+    // check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: "❌ Invalid credentials" });
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    // generate token
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
-    res.json({ message: "✅ Login successful", token });
+    res.json({
+      message: "✅ Login successful",
+      user: { id: user.id, username: user.username, email: user.email },
+      token,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
