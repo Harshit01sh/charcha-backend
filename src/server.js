@@ -4,10 +4,19 @@ const dotenv = require("dotenv");
 const pool = require("../src/config/db")
 
 dotenv.config();
-console.log(pool)
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+(async () => {
+    try {
+        const connection = await pool.getConnection();
+        console.log("✅ Database connected successfully!");
+        connection.release(); // always release back to pool
+    } catch (err) {
+        console.error("❌ Database connection failed:", err.message);
+    }
+})();
 
 app.get("/", (req, res) => res.send("Hello World"));
 
