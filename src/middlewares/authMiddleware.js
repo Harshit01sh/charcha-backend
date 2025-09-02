@@ -4,13 +4,23 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const authMiddleware = (req, res, next) => {
-  const token = req.headers["authorization"]?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "No token provided" });
+  try {
+    // Get token from header (Authorization: Bearer <token>)
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(403).json({ error: "Invalid token" });
+    if (!token) {
+      return res.status(401).json({ error: "❌ No token provided" });
+    }
 
-    req.userId = decoded.id;
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Attach user data to request (can use later in controllers)
+    req.user = decoded; // contains { id, email } from login/register
+
     next();
-  });
+  } catch (err) {
+    return res.status(403).json({ error: "❌ Invalid or expired token" });
+  }
 };
