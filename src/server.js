@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const pool = require("../src/config/db")
+const sequelize = require("../src/config/sequelize")
 
 dotenv.config();
 const app = express();
@@ -10,11 +10,10 @@ app.use(express.json());
 
 (async () => {
     try {
-        const connection = await pool.getConnection();
+        const connection = await sequelize.sync();
         console.log("✅ Database connected successfully!");
-        connection.release(); // always release back to pool
     } catch (err) {
-        console.error("❌ Database connection failed:", err.message);
+        console.error(" Database connection failed:", err.message);
     }
 })();
 
