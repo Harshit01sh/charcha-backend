@@ -5,7 +5,7 @@ import models from "../models/user.models.js";
 
 dotenv.config();
 
-const User = models.users; // sequelize-auto usually makes plural lowercase names
+const User = models.users;
 
 // 🔹 Register User
 export const registerUser = async (req, res) => {
@@ -21,6 +21,13 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ error: "❌ Email already registered" });
     }
 
+    // multer adds file info into req.file
+    let imageUrl = null;
+    if (req.file) {
+      imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    }
+
+
     // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -29,6 +36,7 @@ export const registerUser = async (req, res) => {
       username,
       email,
       password: hashedPassword,
+      image: imageUrl,
     });
 
     // generate token
