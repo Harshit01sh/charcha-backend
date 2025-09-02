@@ -1,6 +1,5 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../config/sequelize");
 
+module.exports=(sequelize,DataTypes)=>{
 const User = sequelize.define("User", {
     id: {
         type: DataTypes.INTEGER,
@@ -31,4 +30,5 @@ const User = sequelize.define("User", {
     updatedAt: false, // disable updatedAt if not needed
 });
 
-module.exports = User;
+return User
+}

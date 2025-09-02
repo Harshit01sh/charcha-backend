@@ -1,8 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const sequelize = require("../src/config/sequelize")
-const User = require("../src/models/user.models");
+const db = require("../src/models/index")
 
 dotenv.config();
 const app = express();
@@ -19,9 +18,7 @@ app.use(express.json());
 // })();
 (async () => {
     try {
-        await sequelize.authenticate();
-        console.log("✅ Database connected!");
-        await sequelize.sync(); // creates table if not exists
+        await db.sequelize.authenticate();
         console.log("✅ Models synced!");
     } catch (error) {
         console.error("❌ DB connection failed:", error.message);
