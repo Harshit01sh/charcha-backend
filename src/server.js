@@ -8,17 +8,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// (async () => {
-//     try {
-//         const connection = await sequelize.sync();
-//         console.log("✅ Database connected successfully!");
-//     } catch (err) {
-//         console.error(" Database connection failed:", err.message);
-//     }
-// })();
 (async () => {
     try {
-        await db.sequelize.authenticate();
+        await db.sequelize.sync();
         console.log("✅ Models synced!");
     } catch (error) {
         console.error("❌ DB connection failed:", error.message);
