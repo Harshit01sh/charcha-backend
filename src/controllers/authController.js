@@ -1,22 +1,19 @@
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-import models from "../models/user.models.js";
+const bcrypt =  require("bcrypt");
+const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
+const db = require("../models/index.js");  // import full models (not just user.models.js)
 
 dotenv.config();
 
-const User = models.users;
+const User = db.Users; // Sequelize User model
 
 // 🔹 Register User
-export const registerUser = async (req, res) => {
+module.exports.registerUser = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { name, email, password } = req.body;
 
-    // check if user already exists (by email OR username)
-    const existingUser = await User.findOne({
-      where: { email },
-    });
-
+    // check if user already exists (by email)
+    const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ error: "❌ Email already registered" });
     }
@@ -27,15 +24,14 @@ export const registerUser = async (req, res) => {
       imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
     }
 
-
     // hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 10);
 
     // create user
     const newUser = await User.create({
-      username,
+      name,
       email,
-      password: hashedPassword,
+      passwordHash,
       image: imageUrl,
     });
 
@@ -48,7 +44,12 @@ export const registerUser = async (req, res) => {
 
     res.status(201).json({
       message: "✅ User registered successfully",
-      user: { id: newUser.id, username: newUser.username, email: newUser.email },
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        image: newUser.image,
+      },
       token,
     });
   } catch (err) {
@@ -57,7 +58,7 @@ export const registerUser = async (req, res) => {
 };
 
 // 🔹 Login User
-export const loginUser = async (req, res) => {
+module.exports.loginUser = async (req, res)  => {
   try {
     const { email, password } = req.body;
 
@@ -66,7 +67,7 @@ export const loginUser = async (req, res) => {
     if (!user) return res.status(400).json({ error: "❌ User not found" });
 
     // check password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) return res.status(400).json({ error: "❌ Invalid credentials" });
 
     // generate token
@@ -78,7 +79,12 @@ export const loginUser = async (req, res) => {
 
     res.json({
       message: "✅ Login successful",
-      user: { id: user.id, username: user.username, email: user.email },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
+      },
       token,
     });
   } catch (err) {

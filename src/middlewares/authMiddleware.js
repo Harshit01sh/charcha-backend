@@ -5,19 +5,15 @@ dotenv.config();
 
 export const authMiddleware = (req, res, next) => {
   try {
-    // Get token from header (Authorization: Bearer <token>)
     const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
+    const token = authHeader && authHeader.split(" ")[1]; // Bearer <token>
 
     if (!token) {
       return res.status(401).json({ error: "❌ No token provided" });
     }
 
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Attach user data to request (can use later in controllers)
-    req.user = decoded; // contains { id, email } from login/register
+    req.user = decoded; // { id, email }
 
     next();
   } catch (err) {

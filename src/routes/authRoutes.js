@@ -4,7 +4,7 @@ const upload = require("../middlewares/uploadMiddleware.js");
 
 const router = express.Router();
 
-router.post("/register",upload.single("image"), registerUser);
+router.post("/register", registerUser);
 router.post("/login", loginUser);
 
-export default router;
+module.exports = router;
