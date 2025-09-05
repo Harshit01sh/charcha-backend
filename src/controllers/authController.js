@@ -11,7 +11,7 @@ const User = db.Users; // Sequelize User model
 module.exports.registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-
+    console.log(req.file,"file");
     // check if user already exists (by email)
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
