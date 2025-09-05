@@ -62,6 +62,7 @@ module.exports.loginUser = async (req, res)  => {
   try {
     const { email, password } = req.body;
 
+    console.log(email,password);
     // find user
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(400).json({ error: "❌ User not found" });
@@ -87,6 +88,17 @@ module.exports.loginUser = async (req, res)  => {
       },
       token,
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
+module.exports.logoutUser = async (req, res) => {
+  try {
+    console.log(res)
+    res.json({ message: "✅ Logout successful. Please clear token on client." });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
