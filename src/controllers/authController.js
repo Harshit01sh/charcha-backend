@@ -189,7 +189,8 @@ module.exports.forgotPassword = async (req, res) => {
     await transporter.sendMail(mailOptions);
 
     res.json({
-      message: "✅ Temporary password sent to your email. Login with it and change password.",
+      //message: "✅ Temporary password sent to your email. Login with it and change password.",
+      message:"A new password has been sent to your email."
     });
   } catch (err) {
     console.error(err);
@@ -263,6 +264,7 @@ module.exports.changePassword = async (req, res) => {
 
 
     res.json({ message: "✅ Password changed successfully" });
+    console.log(res);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong" });
