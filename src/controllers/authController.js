@@ -1,4 +1,4 @@
-const bcrypt =  require("bcrypt");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 const db = require("../models/index.js");  // import full models (not just user.models.js)
@@ -12,7 +12,7 @@ const User = db.Users; // Sequelize User model
 module.exports.registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    console.log(req.file,"file");
+    console.log(req.file, "file");
     // check if user already exists (by email)
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
@@ -59,11 +59,11 @@ module.exports.registerUser = async (req, res) => {
 };
 
 // 🔹 Login User
-module.exports.loginUser = async (req, res)  => {
+module.exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log(email,password);
+    console.log(email, password);
     // find user
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(400).json({ error: "❌ User not found" });
@@ -158,10 +158,10 @@ module.exports.forgotPassword = async (req, res) => {
     // };
 
     const mailOptions = {
-  from: `"ChatApp Support" <${process.env.SMTP_USER}>`,
-  to: user.email,
-  subject: "🔑 Password Reset Instructions - ChatApp",
-  html: `
+      from: `"ChatApp Support" <${process.env.SMTP_USER}>`,
+      to: user.email,
+      subject: "🔑 Password Reset Instructions - ChatApp",
+      html: `
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
       <h2 style="color: #4CAF50;">Dear ${user.name || "User"},</h2>
       <p>
@@ -191,13 +191,85 @@ module.exports.forgotPassword = async (req, res) => {
       </small>
     </div>
   `,
-};
+    };
 
     await transporter.sendMail(mailOptions);
 
     res.json({
       message: "✅ Temporary password sent to your email. Login with it and change password.",
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+};
+
+// Change Password
+module.exports.changePassword = async (req, res) => {
+  try {
+    const { email, oldPassword, newPassword } = req.body;
+
+    if (!email || !oldPassword || !newPassword) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Check current (old) password
+    const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+    if (!isMatch) return res.status(400).json({ error: "Old password is incorrect" });
+
+    // Hash new password
+    const newHashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password in DB
+    await User.update(
+      { passwordHash: newHashedPassword },
+      { where: { email } }
+    );
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+
+    const mailOptions = {
+      from: `"Charcha Support" <${process.env.SMTP_USER}>`,
+      to: user.email,
+      subject: "🔒 Password Changed Successfully",
+      html: `
+    <div style="font-family: Arial, sans-serif; line-height:1.6; color:#333; max-width:600px; margin:auto; padding:20px; border:1px solid #ddd; border-radius:8px;">
+      <h2 style="color:#2c3e50;">Password Changed Successfully ✅</h2>
+      <p>Hi <b>${user.name}</b>,</p>
+      <p>This is to inform you that your password for <b>YourApp</b> was changed successfully.</p>
+
+      <div style="background:#f8f9fa; padding:15px; border-radius:6px; margin:20px 0;">
+        <p style="margin:0; font-size:15px;">If <b>you</b> made this change, no further action is required.</p>
+        <p style="margin:0; font-size:15px; color:#e74c3c;">If this wasn’t you, please reset your password immediately or contact support.</p>
+      </div>
+
+      <p>You can manage your account security by logging into your account:</p>
+      <a href="https://charchaapp.com/login" style="display:inline-block; padding:10px 20px; background:#2c3e50; color:#fff; text-decoration:none; border-radius:5px; margin-top:10px;">Login to Charcha App</a>
+
+      <p style="margin-top:30px; font-size:14px; color:#777;">Thank you,<br><b>YourApp Security Team</b></p>
+
+      <hr style="margin:20px 0;">
+      <p style="font-size:12px; color:#999;">If you didn’t request this password change, please <a href="https://charchaapp.com/support" style="color:#3498db;">contact support</a> immediately.</p>
+    </div>
+    `,
+
+    };
+    await transporter.sendMail(mailOptions);
+
+
+    res.json({ message: "✅ Password changed successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong" });
