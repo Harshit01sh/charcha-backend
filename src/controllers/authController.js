@@ -150,13 +150,6 @@ module.exports.forgotPassword = async (req, res) => {
       },
     });
 
-    // const mailOptions = {
-    //   from: `"ChatApp Support" <${process.env.SMTP_USER}>`,
-    //   to: user.email,
-    //   subject: "ChatApp Password Reset",
-    //   text: `Your temporary password is: ${newPassword}\n\nPlease login and change your password immediately.`,
-    // };
-
     const mailOptions = {
       from: `"ChatApp Support" <${process.env.SMTP_USER}>`,
       to: user.email,
