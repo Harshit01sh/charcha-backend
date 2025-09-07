@@ -84,7 +84,7 @@ module.exports.loginUser = async (req, res)  => {
         id: user.id,
         name: user.name,
         email: user.email,
-        image: user.image,
+        ProfileUrl: user.image,
       },
       token,
     });
