@@ -252,7 +252,7 @@ module.exports.changePassword = async (req, res) => {
       <p>You can manage your account security by logging into your account:</p>
       <a href="https://charchaapp.com/login" style="display:inline-block; padding:10px 20px; background:#2c3e50; color:#fff; text-decoration:none; border-radius:5px; margin-top:10px;">Login to Charcha App</a>
 
-      <p style="margin-top:30px; font-size:14px; color:#777;">Thank you,<br><b>YourApp Security Team</b></p>
+      <p style="margin-top:30px; font-size:14px; color:#777;">Thank you,<br><b>Charcha Security Team</b></p>
 
       <hr style="margin:20px 0;">
       <p style="font-size:12px; color:#999;">If you didn’t request this password change, please <a href="https://charchaapp.com/support" style="color:#3498db;">contact support</a> immediately.</p>
