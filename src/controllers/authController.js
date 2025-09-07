@@ -151,7 +151,7 @@ module.exports.forgotPassword = async (req, res) => {
     });
 
     const mailOptions = {
-      from: `"ChatApp Support" <${process.env.SMTP_USER}>`,
+      from: `"Charcha Support" <${process.env.SMTP_USER}>`,
       to: user.email,
       subject: "🔑 Password Reset Instructions - ChatApp",
       html: `
@@ -176,7 +176,7 @@ module.exports.forgotPassword = async (req, res) => {
       <br />
       <p>
         Best regards, <br />
-        <b>ChatApp Support Team</b>
+        <b>Charcha Support Team</b>
       </p>
       <hr />
       <small style="color: #777;">
@@ -241,7 +241,7 @@ module.exports.changePassword = async (req, res) => {
     <div style="font-family: Arial, sans-serif; line-height:1.6; color:#333; max-width:600px; margin:auto; padding:20px; border:1px solid #ddd; border-radius:8px;">
       <h2 style="color:#2c3e50;">Password Changed Successfully ✅</h2>
       <p>Hi <b>${user.name}</b>,</p>
-      <p>This is to inform you that your password for <b>YourApp</b> was changed successfully.</p>
+      <p>This is to inform you that your password for <b>Charcha App</b> was changed successfully.</p>
 
       <div style="background:#f8f9fa; padding:15px; border-radius:6px; margin:20px 0;">
         <p style="margin:0; font-size:15px;">If <b>you</b> made this change, no further action is required.</p>
