@@ -1,6 +1,8 @@
 const Sequelize = require("sequelize");
 const dotenv = require("dotenv");
 const Users = require("./user.models");
+const Login = require("./Login.models");
+
 
 dotenv.config();
 
@@ -18,7 +20,9 @@ const sequelize = new Sequelize(
 const db = {
   Sequelize: Sequelize,
   sequelize: sequelize,
-  Users: Users(sequelize, Sequelize)
+  Users: Users(sequelize, Sequelize),
+  Login : Login(sequelize, Sequelize)
+
 }
 
 module.exports = db;

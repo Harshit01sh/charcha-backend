@@ -3,10 +3,12 @@ const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 const db = require("../models/index.js");  // import full models (not just user.models.js)
 const nodemailer = require("nodemailer");
+const UAParser = require("ua-parser-js");
 
 dotenv.config();
 
 const User = db.Users; // Sequelize User model
+const Login = db.Login;
 
 // 🔹 Register User
 module.exports.registerUser = async (req, res) => {
@@ -78,6 +80,22 @@ module.exports.loginUser = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
+
+     const parser = new UAParser(req.headers["user-agent"]);
+    const result = parser.getResult();
+
+    const ipAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    const os = result.os.name || "Unknown";        // e.g., Android, iOS, Mac OS
+    const device = result.device.type || "Desktop"; // mobile, tablet, or desktop
+    const browser = result.browser.name || "Unknown"; // Chrome, Safari, Firefox
+
+    await Login.create({
+      userId: user.id,
+      token,
+      ipAddress,
+      device: `${os} (${device})`,
+      browser,
+    });
 
     res.json({
       message: "✅ Login successful",
