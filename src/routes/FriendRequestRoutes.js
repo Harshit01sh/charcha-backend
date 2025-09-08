@@ -12,3 +12,16 @@ router.get("/requests", auth, friendController.getRequests);
 router.get("/friends", auth, friendController.getFriends);
 
 module.exports = router;
+
+
+// POST /friends/send → send request
+
+// POST /friends/accept → accept
+
+// POST /friends/reject → reject
+
+// POST /friends/cancel → cancel
+
+// GET /friends/requests → incoming/outgoing
+
+// GET /friends/friends → friends list
