@@ -2,6 +2,7 @@ const Sequelize = require("sequelize");
 const dotenv = require("dotenv");
 const Users = require("./user.models");
 const Login = require("./Login.models");
+const FriendRequest = require("./FriendRequest.models");
 
 
 dotenv.config();
@@ -21,7 +22,8 @@ const db = {
   Sequelize: Sequelize,
   sequelize: sequelize,
   Users: Users(sequelize, Sequelize),
-  Login : Login(sequelize, Sequelize)
+  Login : Login(sequelize, Sequelize),
+  FriendRequest: FriendRequest(sequelize, Sequelize),
 
 }
 

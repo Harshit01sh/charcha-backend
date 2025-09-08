@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const db = require("../src/models/index");
 const authRoutes = require( "./routes/authRoutes.js");
+const friendRequestRoutes = require("./routes/FriendRequestRoutes.js"); 
 
 dotenv.config();
 const app = express();
@@ -12,6 +13,8 @@ app.use("/uploads", express.static("uploads"));
 
 
 app.use("/api/auth", authRoutes);
+app.use("/friends", friendRequestRoutes);
+
 (async () => {
     try {
         await db.sequelize.sync();
