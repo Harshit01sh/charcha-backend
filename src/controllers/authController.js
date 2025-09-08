@@ -12,7 +12,7 @@ const User = db.Users; // Sequelize User model
 module.exports.registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    console.log(req.file, "file");
+    //console.log(req.file, "file");
     // check if user already exists (by email)
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
@@ -63,7 +63,7 @@ module.exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log(email, password);
+    //console.log(email, password);
     // find user
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(400).json({ error: "❌ User not found" });
@@ -98,7 +98,7 @@ module.exports.loginUser = async (req, res) => {
 
 module.exports.logoutUser = async (req, res) => {
   try {
-    console.log(res)
+    //console.log(res)
     res.json({ message: "✅ Logout successful. Please clear token on client." });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -124,12 +124,12 @@ module.exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
 
-    console.log(email);
+    //console.log(email);
     // find user)
 
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(404).json({ error: "User not found" });
-    console.log(user);
+    //console.log(user);
 
     const newPassword = generateRandomPassword(8);
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -193,7 +193,7 @@ module.exports.forgotPassword = async (req, res) => {
       message:"A new password has been sent to your email."
     });
   } catch (err) {
-    console.error(err);
+    //console.error(err);
     res.status(500).json({ error: "Something went wrong" });
   }
 };
@@ -264,9 +264,9 @@ module.exports.changePassword = async (req, res) => {
 
 
     res.json({ message: "✅ Password changed successfully" });
-    console.log(res);
+    //console.log(res);
   } catch (err) {
-    console.error(err);
+    //console.error(err);
     res.status(500).json({ error: "Something went wrong" });
   }
 };
