@@ -84,6 +84,8 @@ module.exports.getRequests = async (req, res) => {
   try {
     const { userId } = req.params;
 
+    console.log(userId)
+
     const incoming = await FriendRequest.findAll({
       where: { receiverId: userId, status: "pending" },
       include: [{ model: User, as: "Sender", attributes: ["id", "name", "email", "image"] }],
@@ -103,8 +105,8 @@ module.exports.getRequests = async (req, res) => {
 // 🔹 Get Friends List (all accepted)
 module.exports.getFriends = async (req, res) => {
   try {
-    const { userId } = req.params;
-
+    //const { userId } = req.params;
+    const userId = req.user.id;
     const friends = await FriendRequest.findAll({
       where: {
         status: "accepted",
@@ -117,6 +119,39 @@ module.exports.getFriends = async (req, res) => {
     });
 
     res.json(friends);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+// UnFriend 
+// 🔹 Unfriend a user
+module.exports.unfriend = async (req, res) => {
+  try {
+    const { friendId } = req.body; // userId = logged-in user, friendId = friend to remove
+
+    const userId = req.user.id;
+
+    // Find the accepted friend request between these two users
+    const friendship = await FriendRequest.findOne({
+      where: {
+        status: "accepted",
+        [db.Sequelize.Op.or]: [
+          { senderId: userId, receiverId: friendId },
+          { senderId: friendId, receiverId: userId },
+        ],
+      },
+    });
+
+    if (!friendship) {
+      return res.status(404).json({ error: "❌ Friendship not found" });
+    }
+
+    // Delete the friendship
+    await friendship.destroy();
+
+    res.json({ message: "✅ Successfully unfriended the user" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

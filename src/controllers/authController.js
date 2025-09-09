@@ -78,10 +78,10 @@ module.exports.loginUser = async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "30d" }
     );
 
-     const parser = new UAParser(req.headers["user-agent"]);
+    const parser = new UAParser(req.headers["user-agent"]);
     const result = parser.getResult();
 
     const ipAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
@@ -208,7 +208,7 @@ module.exports.forgotPassword = async (req, res) => {
 
     res.json({
       //message: "✅ Temporary password sent to your email. Login with it and change password.",
-      message:"A new password has been sent to your email."
+      message: "A new password has been sent to your email."
     });
   } catch (err) {
     //console.error(err);
