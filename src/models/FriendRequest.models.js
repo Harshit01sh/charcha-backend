@@ -1,7 +1,7 @@
 // models/FriendRequest.js
 module.exports = (sequelize, DataTypes) => {
   const FriendRequest = sequelize.define("FriendRequest", {
-    id: {
+    requestId: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
