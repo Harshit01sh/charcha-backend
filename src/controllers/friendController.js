@@ -302,4 +302,167 @@
   };
 
 
+// 🔹 Friend Suggestions (People You May Know)
+// module.exports.getSuggestions = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+
+//     // ✅ Get all accepted friends of logged-in user
+//     const myFriends = await FriendRequest.findAll({
+//       where: {
+//         status: "accepted",
+//         [Op.or]: [{ senderId: userId }, { receiverId: userId }],
+//       },
+//     });
+
+//     const myFriendIds = myFriends.map((f) =>
+//       f.senderId === userId ? f.receiverId : f.senderId
+//     );
+
+//     // ✅ Get all friend requests (pending) involving logged-in user
+//     const myRequests = await FriendRequest.findAll({
+//       where: {
+//         [Op.or]: [{ senderId: userId }, { receiverId: userId }],
+//       },
+//     });
+
+//     const blockedIds = myRequests.map((r) =>
+//       r.senderId === userId ? r.receiverId : r.senderId
+//     );
+
+//     // ✅ Find all other users (exclude self + friends + requests)
+//     const candidates = await User.findAll({
+//       where: {
+//         id: {
+//           [Op.ne]: userId,
+//           [Op.notIn]: [...myFriendIds, ...blockedIds],
+//         },
+//       },
+//       attributes: ["id", "name", "email", "image"],
+//     });
+
+//     // ✅ Compute mutual friends count for each candidate
+//     const suggestions = await Promise.all(
+//       candidates.map(async (user) => {
+//         const theirFriends = await FriendRequest.findAll({
+//           where: {
+//             status: "accepted",
+//             [Op.or]: [{ senderId: user.id }, { receiverId: user.id }],
+//           },
+//         });
+
+//         const theirFriendIds = theirFriends.map((f) =>
+//           f.senderId === user.id ? f.receiverId : f.senderId
+//         );
+
+//         const mutual = myFriendIds.filter((id) =>
+//           theirFriendIds.includes(id)
+//         ).length;
+
+//         return {
+//           ...user.toJSON(),
+//           mutual,
+//         };
+//       })
+//     );
+
+//     // ✅ Sort by mutual friends (descending)
+//     suggestions.sort((a, b) => b.mutual - a.mutual);
+
+//     res.json(suggestions);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+// 🔹 Friend Suggestions (People You May Know)
+module.exports.getSuggestions = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 10 } = req.query; // pagination
+    const offset = (page - 1) * limit;
+
+    // ✅ Get all accepted friends of logged-in user
+    const myFriends = await FriendRequest.findAll({
+      where: {
+        status: "accepted",
+        [Op.or]: [{ senderId: userId }, { receiverId: userId }],
+      },
+    });
+
+    const myFriendIds = myFriends.map((f) =>
+      f.senderId === userId ? f.receiverId : f.senderId
+    );
+
+    // ✅ Get all friend requests (any status) involving logged-in user
+    const myRequests = await FriendRequest.findAll({
+      where: {
+        [Op.or]: [{ senderId: userId }, { receiverId: userId }],
+      },
+    });
+
+    const blockedIds = myRequests.map((r) =>
+      r.senderId === userId ? r.receiverId : r.senderId
+    );
+
+    // ✅ Find all other users (exclude self + friends + requests)
+    const candidates = await User.findAll({
+      where: {
+        id: {
+          [Op.ne]: userId,
+          [Op.notIn]: [...myFriendIds, ...blockedIds],
+        },
+      },
+      attributes: ["id", "name", "email", "image"],
+    });
+
+    // ✅ Compute mutual friends count for each candidate
+    let suggestions = await Promise.all(
+      candidates.map(async (user) => {
+        const theirFriends = await FriendRequest.findAll({
+          where: {
+            status: "accepted",
+            [Op.or]: [{ senderId: user.id }, { receiverId: user.id }],
+          },
+        });
+
+        const theirFriendIds = theirFriends.map((f) =>
+          f.senderId === user.id ? f.receiverId : f.senderId
+        );
+
+        const mutual = myFriendIds.filter((id) =>
+          theirFriendIds.includes(id)
+        ).length;
+
+        return {
+          ...user.toJSON(),
+          mutual,
+        };
+      })
+    );
+
+    // ✅ Sort by mutual friends (desc)
+    suggestions.sort((a, b) => b.mutual - a.mutual);
+
+    // ✅ If no mutual friends found, shuffle randomly (fallback)
+    if (suggestions.every((s) => s.mutual === 0)) {
+      suggestions = suggestions.sort(() => Math.random() - 0.5);
+    }
+
+    // ✅ Apply pagination
+    const paginated = suggestions.slice(offset, offset + parseInt(limit));
+
+    res.json({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total: suggestions.length,
+      suggestions: paginated,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
 

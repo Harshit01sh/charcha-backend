@@ -12,6 +12,7 @@ router.get("/requests/:userId", auth, friendController.getRequests);
 router.get("/friends", auth, friendController.getFriends);
 router.post("/unfriend", auth, friendController.unfriend);
 router.get('/getsearchuser', auth , friendController.searchUsers)
+router.get("/suggestions", auth, friendController.getSuggestions);
 
 module.exports = router;
 
