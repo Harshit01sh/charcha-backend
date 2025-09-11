@@ -3,6 +3,8 @@ const dotenv = require("dotenv");
 const UsersModel = require("./user.models");
 const LoginModel = require("./Login.models");
 const FriendRequestModel = require("./FriendRequest.models");
+const BlockUsers = require("./Block.models");
+
 
 dotenv.config();
 
@@ -21,12 +23,16 @@ const sequelize = new Sequelize(
 const Users = UsersModel(sequelize, Sequelize.DataTypes);
 const Login = LoginModel(sequelize, Sequelize.DataTypes);
 const FriendRequest = FriendRequestModel(sequelize, Sequelize.DataTypes);
+const BlockUser = BlockUsers(sequelize, Sequelize.DataTypes);
+
 
 // Setup associations
 Users.hasMany(FriendRequest, { as: "SentRequests", foreignKey: "senderId" });
 Users.hasMany(FriendRequest, { as: "ReceivedRequests", foreignKey: "receiverId" });
 FriendRequest.belongsTo(Users, { as: "Sender", foreignKey: "senderId" });
 FriendRequest.belongsTo(Users, { as: "Receiver", foreignKey: "receiverId" });
+BlockUser.belongsTo(Users, { as: "Blocker", foreignKey: "blockerId" });
+BlockUser.belongsTo(Users, { as: "Blocked", foreignKey: "blockedId" });
 
 const db = {
   Sequelize,
@@ -34,6 +40,7 @@ const db = {
   Users,
   Login,
   FriendRequest,
+  BlockUser
 };
 
 module.exports = db;

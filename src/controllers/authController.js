@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const db = require("../models/index.js");  // import full models (not just user.models.js)
 const nodemailer = require("nodemailer");
 const UAParser = require("ua-parser-js");
+const Block = db.Block;
 
 dotenv.config();
 
@@ -122,8 +123,6 @@ module.exports.logoutUser = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
-
 
 
 // Utility: generate random 8-character password
@@ -286,5 +285,73 @@ module.exports.changePassword = async (req, res) => {
   } catch (err) {
     //console.error(err);
     res.status(500).json({ error: "Something went wrong" });
+  }
+};
+
+
+// 🔹 Block a user
+module.exports.blockUser = async (req, res) => {
+  try {
+    const blockerId = req.user.id; // logged-in user
+    const { blockedId } = req.body;
+
+    if (blockerId === blockedId) {
+      return res.status(400).json({ error: "❌ You cannot block yourself" });
+    }
+
+    // Check if already blocked
+    const existing = await Block.findOne({ where: { blockerId, blockedId } });
+    if (existing) {
+      return res.status(400).json({ error: "❌ User already blocked" });
+    }
+
+    // Remove any existing friendship or requests
+    await FriendRequest.destroy({
+      where: {
+        [db.Sequelize.Op.or]: [
+          { senderId: blockerId, receiverId: blockedId },
+          { senderId: blockedId, receiverId: blockerId },
+        ],
+      },
+    });
+
+    const block = await Block.create({ blockerId, blockedId });
+    res.json({ message: "✅ User blocked successfully", block });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 🔹 Unblock a user
+module.exports.unblockUser = async (req, res) => {
+  try {
+    const blockerId = req.user.id;
+    const { blockedId } = req.body;
+
+    const block = await Block.findOne({ where: { blockerId, blockedId } });
+    if (!block) {
+      return res.status(404).json({ error: "❌ Block record not found" });
+    }
+
+    await block.destroy();
+    res.json({ message: "✅ User unblocked successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 🔹 Get all blocked users
+module.exports.getBlockedUsers = async (req, res) => {
+  try {
+    const blockerId = req.user.id;
+
+    const blocks = await Block.findAll({
+      where: { blockerId },
+      include: [{ model: User, as: "Blocked", attributes: ["id", "name", "email", "image"] }],
+    });
+
+    res.json(blocks);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

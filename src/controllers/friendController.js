@@ -151,26 +151,66 @@
   };
 
   // 🔹 Get Friends List (all accepted)
-  module.exports.getFriends = async (req, res) => {
-    try {
-      //const { userId } = req.params;
-      const userId = req.user.id;
-      const friends = await FriendRequest.findAll({
-        where: {
-          status: "accepted",
-          [db.Sequelize.Op.or]: [{ senderId: userId }, { receiverId: userId }],
-        },
-        include: [
-          { model: User, as: "Sender", attributes: ["id", "name", "email", "image"] },
-          { model: User, as: "Receiver", attributes: ["id", "name", "email", "image"] },
-        ],
-      });
+  // module.exports.getFriends = async (req, res) => {
+  //   try {
+  //     //const { userId } = req.params;
+  //     const userId = req.user.id;
+  //     const friends = await FriendRequest.findAll({
+  //       where: {
+  //         status: "accepted",
+  //         [db.Sequelize.Op.or]: [{ senderId: userId }, { receiverId: userId }],
+  //       },
+  //       include: [
+  //         { model: User, as: "Sender", attributes: ["id", "name", "email", "image"] },
+  //         { model: User, as: "Receiver", attributes: ["id", "name", "email", "image"] },
+  //       ],
+  //     });
 
-      res.json(friends);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  };
+  //     res.json(friends);
+  //   } catch (err) {
+  //     res.status(500).json({ error: err.message });
+  //   }
+  // };
+
+  module.exports.getFriends = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // ✅ Get blocked users (both ways)
+    const blocks = await db.BlockUser.findAll({
+      where: {
+        [db.Sequelize.Op.or]: [{ blockerId: userId }, { blockedId: userId }],
+      },
+    });
+
+    const blockedIds = blocks.map((b) =>
+      b.blockerId === userId ? b.blockedId : b.blockerId
+    );
+
+    // ✅ Get all accepted friendships (excluding blocked users)
+    const friends = await FriendRequest.findAll({
+      where: {
+        status: "accepted",
+        [db.Sequelize.Op.or]: [{ senderId: userId }, { receiverId: userId }],
+      },
+      include: [
+        { model: User, as: "Sender", attributes: ["id", "name", "email", "image"] },
+        { model: User, as: "Receiver", attributes: ["id", "name", "email", "image"] },
+      ],
+    });
+
+    // ✅ Filter out blocked users
+    const filteredFriends = friends.filter((f) => {
+      const otherUserId = f.senderId === userId ? f.receiverId : f.senderId;
+      return !blockedIds.includes(otherUserId);
+    });
+
+    res.json(filteredFriends);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 
   // UnFriend 
@@ -206,100 +246,204 @@
   };
 
   // 🔹 Search Users (with friendship/request status)
-  module.exports.searchUsers = async (req, res) => {
-    try {
-      const userId = req.user.id; // logged-in user
-      const { query } = req.query; // search term (name/email/username)
+  // module.exports.searchUsers = async (req, res) => {
+  //   try {
+  //     const userId = req.user.id; // logged-in user
+  //     const { query } = req.query; // search term (name/email/username)
 
-      if (!query || query.trim() === "") {
-        return res.status(400).json({ error: "❌ Search query is required" });
-      }
+  //     if (!query || query.trim() === "") {
+  //       return res.status(400).json({ error: "❌ Search query is required" });
+  //     }
 
-      // Find users by name (excluding self)
-      const users = await User.findAll({
-        where: {
-          id: { [db.Sequelize.Op.ne]: userId },
-          name: { [db.Sequelize.Op.like]: `%${query}%` },
-        },
-        attributes: ["id", "name", "email", "image"],
-      });
+  //     // Find users by name (excluding self)
+  //     const users = await User.findAll({
+  //       where: {
+  //         id: { [db.Sequelize.Op.ne]: userId },
+  //         name: { [db.Sequelize.Op.like]: `%${query}%` },
+  //       },
+  //       attributes: ["id", "name", "email", "image"],
+  //     });
 
-      // Fetch all friend requests involving the logged-in user
-      const requests = await FriendRequest.findAll({
-        where: {
-          [db.Sequelize.Op.or]: [
-            { senderId: userId },
-            { receiverId: userId },
-          ],
-        },
-      });
+  //     // Fetch all friend requests involving the logged-in user
+  //     const requests = await FriendRequest.findAll({
+  //       where: {
+  //         [db.Sequelize.Op.or]: [
+  //           { senderId: userId },
+  //           { receiverId: userId },
+  //         ],
+  //       },
+  //     });
 
-      // Map requests into quick lookup
-      const statusMap = {};
-      requests.forEach(req => {
-        const otherUserId = req.senderId === userId ? req.receiverId : req.senderId;
-        statusMap[otherUserId] = req.status === "accepted"
-          ? "friend"
-          : req.senderId === userId
-            ? "request_sent"
-            : "request_received";
-      });
+  //     // Map requests into quick lookup
+  //     const statusMap = {};
+  //     requests.forEach(req => {
+  //       const otherUserId = req.senderId === userId ? req.receiverId : req.senderId;
+  //       statusMap[otherUserId] = req.status === "accepted"
+  //         ? "friend"
+  //         : req.senderId === userId
+  //           ? "request_sent"
+  //           : "request_received";
+  //     });
 
-      // Attach status info to each searched user
-      // const result = users.map(user => ({
-      //   ...user.toJSON(),
-      //   status: statusMap[user.id] || "none", 
-      // }));
+  //     // Attach status info to each searched user
+  //     // const result = users.map(user => ({
+  //     //   ...user.toJSON(),
+  //     //   status: statusMap[user.id] || "none", 
+  //     // }));
 
-      // Fetch all accepted friends of logged-in user (once)
-      const myFriends = await FriendRequest.findAll({
-        where: {
-          status: "accepted",
-          [db.Sequelize.Op.or]: [{ senderId: userId }, { receiverId: userId }],
-        },
-      });
+  //     // Fetch all accepted friends of logged-in user (once)
+  //     const myFriends = await FriendRequest.findAll({
+  //       where: {
+  //         status: "accepted",
+  //         [db.Sequelize.Op.or]: [{ senderId: userId }, { receiverId: userId }],
+  //       },
+  //     });
 
-      const myFriendIds = myFriends.map((f) =>
-        f.senderId === userId ? f.receiverId : f.senderId
-      );
+  //     const myFriendIds = myFriends.map((f) =>
+  //       f.senderId === userId ? f.receiverId : f.senderId
+  //     );
 
-      // Attach status + mutual friends count to each searched user
-      const result = await Promise.all(
-        users.map(async (user) => {
-          // Get this user’s friends
-          const theirFriends = await FriendRequest.findAll({
-            where: {
-              status: "accepted",
-              [db.Sequelize.Op.or]: [
-                { senderId: user.id },
-                { receiverId: user.id },
-              ],
-            },
-          });
+  //     // Attach status + mutual friends count to each searched user
+  //     const result = await Promise.all(
+  //       users.map(async (user) => {
+  //         // Get this user’s friends
+  //         const theirFriends = await FriendRequest.findAll({
+  //           where: {
+  //             status: "accepted",
+  //             [db.Sequelize.Op.or]: [
+  //               { senderId: user.id },
+  //               { receiverId: user.id },
+  //             ],
+  //           },
+  //         });
 
-          const theirFriendIds = theirFriends.map((f) =>
-            f.senderId === user.id ? f.receiverId : f.senderId
-          );
+  //         const theirFriendIds = theirFriends.map((f) =>
+  //           f.senderId === user.id ? f.receiverId : f.senderId
+  //         );
 
-          // Count mutuals
-          const mutual = myFriendIds.filter((id) =>
-            theirFriendIds.includes(id)
-          ).length;
+  //         // Count mutuals
+  //         const mutual = myFriendIds.filter((id) =>
+  //           theirFriendIds.includes(id)
+  //         ).length;
 
-          return {
-            ...user.toJSON(),
-            status: statusMap[user.id] || "none",
-            mutual,
-          };
-        })
-      );
+  //         return {
+  //           ...user.toJSON(),
+  //           status: statusMap[user.id] || "none",
+  //           mutual,
+  //         };
+  //       })
+  //     );
 
 
-      res.json(result);
-    } catch (err) {
-      res.status(500).json({ error: err.message });
+  //     res.json(result);
+  //   } catch (err) {
+  //     res.status(500).json({ error: err.message });
+  //   }
+  // };
+
+  // 🔹 Search Users (with friendship/request status)
+module.exports.searchUsers = async (req, res) => {
+  try {
+    const userId = req.user.id; // logged-in user
+    const { query } = req.query;
+
+    if (!query || query.trim() === "") {
+      return res.status(400).json({ error: "❌ Search query is required" });
     }
-  };
+
+    // ✅ Get blocked users (both ways)
+    const blocks = await db.Block.findAll({
+      where: {
+        [db.Sequelize.Op.or]: [
+          { blockerId: userId },
+          { blockedId: userId },
+        ],
+      },
+    });
+
+    const blockedIds = blocks.map((b) =>
+      b.blockerId === userId ? b.blockedId : b.blockerId
+    );
+
+    // ✅ Find users by name, excluding self + blocked
+    const users = await User.findAll({
+      where: {
+        id: {
+          [db.Sequelize.Op.ne]: userId,
+          [db.Sequelize.Op.notIn]: blockedIds, // exclude blocked
+        },
+        name: { [db.Sequelize.Op.like]: `%${query}%` },
+      },
+      attributes: ["id", "name", "email", "image"],
+    });
+
+    // Fetch all friend requests involving me
+    const requests = await FriendRequest.findAll({
+      where: {
+        [db.Sequelize.Op.or]: [{ senderId: userId }, { receiverId: userId }],
+      },
+    });
+
+    // Quick lookup map
+    const statusMap = {};
+    requests.forEach((reqObj) => {
+      const otherUserId =
+        reqObj.senderId === userId ? reqObj.receiverId : reqObj.senderId;
+      statusMap[otherUserId] =
+        reqObj.status === "accepted"
+          ? "friend"
+          : reqObj.senderId === userId
+          ? "request_sent"
+          : "request_received";
+    });
+
+    // ✅ Fetch my friends once
+    const myFriends = await FriendRequest.findAll({
+      where: {
+        status: "accepted",
+        [db.Sequelize.Op.or]: [{ senderId: userId }, { receiverId: userId }],
+      },
+    });
+
+    const myFriendIds = myFriends.map((f) =>
+      f.senderId === userId ? f.receiverId : f.senderId
+    );
+
+    // ✅ Attach mutual + status
+    const result = await Promise.all(
+      users.map(async (user) => {
+        const theirFriends = await FriendRequest.findAll({
+          where: {
+            status: "accepted",
+            [db.Sequelize.Op.or]: [
+              { senderId: user.id },
+              { receiverId: user.id },
+            ],
+          },
+        });
+
+        const theirFriendIds = theirFriends.map((f) =>
+          f.senderId === user.id ? f.receiverId : f.senderId
+        );
+
+        const mutual = myFriendIds.filter((id) =>
+          theirFriendIds.includes(id)
+        ).length;
+
+        return {
+          ...user.toJSON(),
+          status: statusMap[user.id] || "none",
+          mutual,
+        };
+      })
+    );
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 
 // 🔹 Friend Suggestions (People You May Know)
@@ -401,20 +545,33 @@ module.exports.getSuggestions = async (req, res) => {
       },
     });
 
-    const blockedIds = myRequests.map((r) =>
+    const requestIds = myRequests.map((r) =>
       r.senderId === userId ? r.receiverId : r.senderId
     );
+
+    const blocks = await db.BlockUser.findAll({
+      where: {
+        [Op.or]: [{ blockerId: userId }, { blockedId: userId }],
+      },
+    });
+
+    const blockedIds = blocks.map((b) =>
+      b.blockerId === userId ? b.blockedId : b.blockerId
+    );
+
+    const excludeIds = [...myFriendIds, ...requestIds, ...blockedIds];
 
     // ✅ Find all other users (exclude self + friends + requests)
     const candidates = await User.findAll({
       where: {
         id: {
           [Op.ne]: userId,
-          [Op.notIn]: [...myFriendIds, ...blockedIds],
+          [Op.notIn]: excludeIds,
         },
       },
       attributes: ["id", "name", "email", "image"],
     });
+
 
     // ✅ Compute mutual friends count for each candidate
     let suggestions = await Promise.all(
