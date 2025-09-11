@@ -13,6 +13,7 @@ router.get("/friends", auth, friendController.getFriends);
 router.post("/unfriend", auth, friendController.unfriend);
 router.get('/getsearchuser', auth , friendController.searchUsers)
 router.get("/suggestions", auth, friendController.getSuggestions);
+router.get("/profile/:userId", auth, friendController.getProfile);
 
 module.exports = router;
 
