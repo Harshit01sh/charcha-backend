@@ -118,7 +118,7 @@
     try {
       const { userId } = req.params;
 
-      console.log(userId)
+      console.log(userId);
 
       const incoming = await FriendRequest.findAll({
         where: { receiverId: userId, status: "pending" },

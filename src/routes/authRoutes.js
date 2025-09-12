@@ -10,6 +10,7 @@ router.post("/login", loginUser);
 router.post("/logout", logoutUser); 
 router.post("/forgot-password", forgotPassword);
 router.post("/change-password",changePassword);
+router.put("/update-profile", auth, upload.single("image"), userController.updateProfile);
 
 router.post("/block", auth, userController.blockUser);
 router.post("/unblock", auth, userController.unblockUser);

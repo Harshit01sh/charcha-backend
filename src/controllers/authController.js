@@ -65,6 +65,7 @@ module.exports.registerUser = async (req, res) => {
 module.exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(email,password);
 
     //console.log(email, password);
     // find user
@@ -353,5 +354,63 @@ module.exports.getBlockedUsers = async (req, res) => {
     res.json(blocks);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+
+module.exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id; // from JWT middleware
+    const { name, email, mobileNo, description } = req.body;
+    console.log(name, email, mobileNo, description)
+
+    let imageUrl = null;
+    if (req.file) {
+      imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: "❌ User not found" });
+    }
+
+    // ✅ Check for duplicate email
+    if (email && email !== user.email) {
+      const existingEmail = await User.findOne({ where: { email } });
+      if (existingEmail) {
+        return res.status(400).json({ error: "⚠️ Email already in use" });
+      }
+      user.email = email;
+    }
+
+    // ✅ Check for duplicate mobile number
+    if (mobileNo && mobileNo !== user.mobileNo) {
+      const existingMobile = await User.findOne({ where: { mobileNo } });
+      if (existingMobile) {
+        return res.status(400).json({ error: "⚠️ Mobile number already in use" });
+      }
+      user.mobileNo = mobileNo;
+    }
+
+    if (name) user.name = name;
+    if (description) user.description = description;
+    if (imageUrl) user.image = imageUrl;
+
+    await user.save();
+
+    res.json({
+      message: "✅ Profile updated successfully",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        mobileNo: user.mobileNo,
+        image: user.image,
+        description: user.description,
+      },
+    });
+  } catch (err) {
+    console.error("❌ Update Profile Error:", err);
+    res.status(500).json({ error: "Something went wrong" });
   }
 };
