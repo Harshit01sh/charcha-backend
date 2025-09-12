@@ -624,8 +624,10 @@ module.exports.getSuggestions = async (req, res) => {
 // 🔹 Get User Profile (with friendship + mutual info)
 module.exports.getProfile = async (req, res) => {
   try {
-    const { userId } = req.query;  // target user
+   
+    const { userId } = req.params;  // target user
     const loggedInUserId = req.user.id;
+     //console.log('id', userId,loggedInUserId);
     
 
     if (parseInt(userId) === loggedInUserId) {
@@ -634,7 +636,7 @@ module.exports.getProfile = async (req, res) => {
 
     // ✅ Check if user exists
     const user = await User.findByPk(userId, {
-      attributes: ["id", "name", "email", "image", "description"],
+      attributes: ["id", "name", "email", "image","description"],
     });
     if (!user) return res.status(404).json({ error: "❌ User not found" });
 

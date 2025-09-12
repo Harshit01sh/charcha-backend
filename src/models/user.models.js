@@ -23,6 +23,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING, // store file path or URL
             allowNull: true,
         },
+        description:{
+            type :DataTypes.STRING(250),
+            allowNull:true
+    },
     }, {
         tableName: "users",
         timestamps: true,
