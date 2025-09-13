@@ -162,6 +162,8 @@ module.exports.loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         ProfileUrl: user.image,
+        mobileNo: user.mobileNo,
+        description: user.description,
       },
       token,
     });
@@ -455,6 +457,7 @@ module.exports.updateProfile = async (req, res) => {
     await user.save();
 
     res.json({
+      status: 200 , 
       message: "✅ Profile updated successfully",
       user: {
         id: user.id,
