@@ -535,7 +535,10 @@ module.exports.getProfile = async (req, res) => {
     let requestFromMe = false;
     let requestToMe = false;
 
+    let requestId = null;
+
     if (request) {
+       requestId = request.requestId; // ✅ include requestId
       if (request.status === "accepted") {
         isFriend = true;
       } else if (request.status === "pending") {
@@ -555,7 +558,8 @@ module.exports.getProfile = async (req, res) => {
       requestFromMe,
       requestToMe,
       mutualCount,
-      mutualFriends
+      mutualFriends,
+      requestId
     });
     //console.log(res)
   } catch (err) {
