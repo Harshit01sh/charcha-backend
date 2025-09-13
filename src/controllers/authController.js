@@ -420,7 +420,7 @@ module.exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.id; // from JWT middleware
     const { name, email, mobileNo, description } = req.body;
-    console.log(name, email, mobileNo, description)
+    console.log(name, email, mobileNo, description);
 
     let imageUrl = null;
     if (req.file) {
@@ -452,7 +452,7 @@ module.exports.updateProfile = async (req, res) => {
 
     if (name) user.name = name;
     if (description) user.description = description;
-    if (imageUrl) user.image = imageUrl;
+    //if (imageUrl) user.image = imageUrl;
 
     await user.save();
 
