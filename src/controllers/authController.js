@@ -57,7 +57,7 @@ module.exports.registerUser = async (req, res) => {
     });
 
     const mailOptions = {
-  from: `"YourApp Support" <${process.env.SMTP_USER}>`,
+  from: `"Charcha App Support" <${process.env.SMTP_USER}>`,
   to: newUser.email,
   subject: "🎉 Welcome to Charcha App!",
   html: `
