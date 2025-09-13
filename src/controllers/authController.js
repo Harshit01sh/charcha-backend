@@ -126,7 +126,7 @@ module.exports.registerUser = async (req, res) => {
 // 🔹 Login User
 module.exports.loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, deviceInfo } = req.body;
     console.log(email, password);
 
     //console.log(email, password);
@@ -145,20 +145,45 @@ module.exports.loginUser = async (req, res) => {
       { expiresIn: "30d" }
     );
 
-    const parser = new UAParser(req.headers["user-agent"]);
+    // const parser = new UAParser(req.headers["user-agent"]);
+    // const result = parser.getResult();
+    // console.log(parser.getBrowser(),parser.getOS(),parser.getDevice(),parser.getEngine());
+
+
+    // const ipAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    // const os = result.os.name || "Unknown";        // e.g., Android, iOS, Mac OS
+    // const device = result.device.type || "Desktop"; // mobile, tablet, or desktop
+    // const browser = result.browser.name || "Unknown"; // Chrome, Safari, Firefox
+
+    // Try UAParser first
+    const parser = new UAParser(req.headers["user-agent"] || "");
     const result = parser.getResult();
 
-    const ipAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-    const os = result.os.name || "Unknown";        // e.g., Android, iOS, Mac OS
-    const device = result.device.type || "Desktop"; // mobile, tablet, or desktop
-    const browser = result.browser.name || "Unknown"; // Chrome, Safari, Firefox
+    let os = result.os?.name;
+    let device = result.device?.type;
+    let browser = result.browser?.name;
+
+    // Fallback: use expo-device info
+    if (!os && deviceInfo) {
+      os = deviceInfo.os;
+      device = deviceInfo.model;
+      browser = "MobileApp";
+    }
+
+    let ipAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+
+    // If it's IPv6 mapped IPv4 (::ffff:192.168.x.x) → extract only IPv4
+    if (ipAddress && ipAddress.includes("::ffff:")) {
+      ipAddress = ipAddress.split("::ffff:")[1];
+    }
+    console.log(os, device, browser, ipAddress, "details")
 
     await Login.create({
       userId: user.id,
       token,
       ipAddress,
-      device: `${os} (${device})`,
-      browser,
+      device: `${device || "Unknown"}`,
+      browser: browser || "Unknown",
     });
 
     res.json({
@@ -441,7 +466,7 @@ const cloudinary = require("cloudinary").v2;
 //     //   imageUrl = req.file.path; // Cloudinary public URL
 //     // }
 
-  
+
 // // if (req.file && req.file.path) {
 // //   const result = await cloudinary.uploader.upload(req.file.path, { folder: "charcha_uploads" });
 // //   imageUrl = result.secure_url;
@@ -451,7 +476,7 @@ const cloudinary = require("cloudinary").v2;
 // //}
 
 
-   
+
 
 
 
@@ -459,7 +484,7 @@ const cloudinary = require("cloudinary").v2;
 //     if (!user) {
 //       return res.status(404).json({ error: "❌ User not found" });
 //     }
-    
+
 //      // ✅ Handle image upload/update
 //     if (req.file) {
 //   // multer-storage-cloudinary gives you file info
@@ -543,7 +568,7 @@ module.exports.updateProfile = async (req, res) => {
       uploadedUrl = result.secure_url;
       user.image = uploadedUrl;
       console.log("📷 Uploaded to Cloudinary:", uploadedUrl);
-    } 
+    }
     // ✅ If frontend sent an existing image URL, keep it
     else if (existingImage && existingImage.startsWith("http")) {
       user.image = existingImage;
