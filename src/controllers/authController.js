@@ -46,6 +46,62 @@ module.exports.registerUser = async (req, res) => {
       { expiresIn: "1h" }
     );
 
+     const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT || 587,
+      secure: false, // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    const mailOptions = {
+  from: `"YourApp Support" <${process.env.SMTP_USER}>`,
+  to: newUser.email,
+  subject: "🎉 Welcome to Charcha App!",
+  html: `
+  <div style="font-family: Arial, sans-serif; background-color:#f4f7fa; padding:40px;">
+    <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:10px; box-shadow:0 4px 8px rgba(0,0,0,0.05); overflow:hidden;">
+      
+      <!-- Header -->
+      <div style="background: linear-gradient(90deg, #1877F2, #4a90e2); padding:20px; text-align:center; color:#fff;">
+        <h1 style="margin:0; font-size:24px;">Welcome to Charcha App 🎉</h1>
+      </div>
+
+      <!-- Body -->
+      <div style="padding:30px; color:#333;">
+        <h2 style="margin-top:0;">Hi ${newUser.name},</h2>
+        <p style="font-size:16px; line-height:1.6;">
+          Thank you for joining <b>Charcha App</b>! We’re thrilled to have you as part of our community.  
+          You can now log in and start connecting with friends, sharing moments, and more 🚀.
+        </p>
+
+        <div style="text-align:center; margin:30px 0;">
+          <a href="${process.env.CLIENT_URL}/login" 
+             style="background:#1877F2; color:#fff; padding:12px 24px; border-radius:6px; font-size:16px; font-weight:bold; text-decoration:none;">
+             Go to Charcha App
+          </a>
+        </div>
+
+        <p style="font-size:14px; color:#666; line-height:1.6;">
+          If you didn’t create this account, please ignore this email.  
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div style="background:#f0f2f5; padding:20px; text-align:center; font-size:13px; color:#777;">
+        <p>© ${new Date().getFullYear()} Charcha App. All rights reserved.</p>
+      </div>
+
+    </div>
+  </div>
+  `,
+};
+
+await transporter.sendMail(mailOptions);
+
+
     res.status(201).json({
       message: "✅ User registered successfully",
       user: {
