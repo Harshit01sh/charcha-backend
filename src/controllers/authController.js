@@ -23,9 +23,15 @@ module.exports.registerUser = async (req, res) => {
     }
 
     // multer adds file info into req.file
+    // let imageUrl = null;
+    // if (req.file) {
+    //   imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    // }
+
+    // ✅ multer + cloudinary automatically uploads file
     let imageUrl = null;
-    if (req.file) {
-      imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    if (req.file && req.file.path) {
+      imageUrl = req.file.path; // Cloudinary public URL
     }
 
     // hash password
@@ -46,7 +52,7 @@ module.exports.registerUser = async (req, res) => {
       { expiresIn: "1h" }
     );
 
-     const transporter = nodemailer.createTransport({
+    const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT || 587,
       secure: false, // true for 465, false for other ports
@@ -57,10 +63,10 @@ module.exports.registerUser = async (req, res) => {
     });
 
     const mailOptions = {
-  from: `"Charcha App Support" <${process.env.SMTP_USER}>`,
-  to: newUser.email,
-  subject: "🎉 Welcome to Charcha App!",
-  html: `
+      from: `"Charcha App Support" <${process.env.SMTP_USER}>`,
+      to: newUser.email,
+      subject: "🎉 Welcome to Charcha App!",
+      html: `
   <div style="font-family: Arial, sans-serif; background-color:#f4f7fa; padding:40px;">
     <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:10px; box-shadow:0 4px 8px rgba(0,0,0,0.05); overflow:hidden;">
       
@@ -97,9 +103,9 @@ module.exports.registerUser = async (req, res) => {
     </div>
   </div>
   `,
-};
+    };
 
-await transporter.sendMail(mailOptions);
+    await transporter.sendMail(mailOptions);
 
 
     res.status(201).json({
@@ -121,7 +127,7 @@ await transporter.sendMail(mailOptions);
 module.exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log(email,password);
+    console.log(email, password);
 
     //console.log(email, password);
     // find user
@@ -416,21 +422,132 @@ module.exports.getBlockedUsers = async (req, res) => {
 };
 
 
+const cloudinary = require("cloudinary").v2;
+
+// module.exports.updateProfile = async (req, res) => {
+//   //console.log("🚀 updateProfile route hit!");
+//   try {
+//     const userId = req.user.id; // from JWT middleware
+//     const { name, email, mobileNo, description, image: existingImage } = req.body;
+//     console.log(name, email, mobileNo, description,"update profile");
+
+//     // let imageUrl = null;
+//     // if (req.file) {
+//     //   imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+//     // }
+
+//     // let imageUrl = null;
+//     // if (req.file && req.file.path) {
+//     //   imageUrl = req.file.path; // Cloudinary public URL
+//     // }
+
+  
+// // if (req.file && req.file.path) {
+// //   const result = await cloudinary.uploader.upload(req.file.path, { folder: "charcha_uploads" });
+// //   imageUrl = result.secure_url;
+// // } else if (req.body.image) {
+// //   // user sent existing image URL
+// //   imageUrl = req.body.image;
+// //}
+
+
+   
+
+
+
+//     const user = await User.findByPk(userId);
+//     if (!user) {
+//       return res.status(404).json({ error: "❌ User not found" });
+//     }
+    
+//      // ✅ Handle image upload/update
+//     if (req.file) {
+//   // multer-storage-cloudinary gives you file info
+//   user.image = req.file.path || req.file.secure_url;
+//   console.log("📷 Uploaded to Cloudinary:", user.image);
+// } else if (existingImage) {
+//   user.image = existingImage;
+//   console.log("📷 Keeping existing image:", existingImage);
+// }
+
+//      //console.log(imageUrl);
+
+//     // ✅ Check for duplicate email
+//     if (email && email !== user.email) {
+//       const existingEmail = await User.findOne({ where: { email } });
+//       if (existingEmail) {
+//         return res.status(400).json({ error: "⚠️ Email already in use" });
+//       }
+//       user.email = email;
+//     }
+
+//     // ✅ Check for duplicate mobile number
+//     if (mobileNo && mobileNo !== user.mobileNo) {
+//       const existingMobile = await User.findOne({ where: { mobileNo } });
+//       if (existingMobile) {
+//         return res.status(400).json({ error: "⚠️ Mobile number already in use" });
+//       }
+//       user.mobileNo = mobileNo;
+//     }
+
+//     if (name) user.name = name;
+//     if (description) user.description = description;
+//     if (imageUrl) user.image = imageUrl;
+
+//     await user.save();
+
+//     res.json({
+//       status: 200,
+//       message: "✅ Profile updated successfully",
+//       user: {
+//         id: user.id,
+//         name: user.name,
+//         email: user.email,
+//         mobileNo: user.mobileNo,
+//         image: user.image,
+//         description: user.description,
+//       },
+//     });
+//   } catch (err) {
+//     console.error("❌ Update Profile Error:", err);
+//     res.status(500).json({ error: "Something went wrong" });
+//   }
+// };
+
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 module.exports.updateProfile = async (req, res) => {
-  //console.log("🚀 updateProfile route hit!");
   try {
     const userId = req.user.id; // from JWT middleware
-    const { name, email, mobileNo, description } = req.body;
-    //console.log(name, email, mobileNo, description,"update profile");
-
-    let imageUrl = null;
-    if (req.file) {
-      imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-    }
+    const { name, email, mobileNo, description, image: existingImage } = req.body;
 
     const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({ error: "❌ User not found" });
+    }
+
+    // ✅ Handle image upload/update
+    let uploadedUrl = null;
+
+    // ✅ If a file was uploaded (via multer), send it to Cloudinary
+    if (req.file && req.file.path) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "charcha_uploads",
+        resource_type: "image"
+      });
+      uploadedUrl = result.secure_url;
+      user.image = uploadedUrl;
+      console.log("📷 Uploaded to Cloudinary:", uploadedUrl);
+    } 
+    // ✅ If frontend sent an existing image URL, keep it
+    else if (existingImage && existingImage.startsWith("http")) {
+      user.image = existingImage;
+      console.log("📷 Keeping existing image:", existingImage);
     }
 
     // ✅ Check for duplicate email
@@ -453,12 +570,11 @@ module.exports.updateProfile = async (req, res) => {
 
     if (name) user.name = name;
     if (description) user.description = description;
-    if (imageUrl) user.image = imageUrl;
 
     await user.save();
 
     res.json({
-      status: 200 , 
+      status: 200,
       message: "✅ Profile updated successfully",
       user: {
         id: user.id,
