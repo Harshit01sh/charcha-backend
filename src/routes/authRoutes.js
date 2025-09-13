@@ -1,5 +1,5 @@
 const express = require("express");
-const  { registerUser, loginUser,logoutUser, forgotPassword,changePassword } = require("../controllers/authController.js");
+const  { registerUser, loginUser,logoutUser, forgotPassword,changePassword,updateProfile } = require("../controllers/authController.js");
 const upload = require("../middlewares/uploadMiddleware.js");
 const auth = require("./../middlewares/authMiddleware");
 const userController = require("./../controllers/authController.js");
@@ -10,7 +10,7 @@ router.post("/login", loginUser);
 router.post("/logout", logoutUser); 
 router.post("/forgot-password", forgotPassword);
 router.post("/change-password",changePassword);
-router.put("/update-profile", auth, upload.single("image"), userController.updateProfile);
+router.post("/update-profile", auth, upload.single("image"),updateProfile);
 
 router.post("/block", auth, userController.blockUser);
 router.post("/unblock", auth, userController.unblockUser);
