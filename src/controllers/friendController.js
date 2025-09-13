@@ -3,6 +3,7 @@
   const User = db.Users;
   const { Op } = db.Sequelize;
   const Block = db.BlockUser;
+  //const { getMutualFriendsCount } = require("./../Utils/mutualFriends");
 
 
   async function getMutualFriendsCount(userId, otherUserId) {
@@ -36,6 +37,58 @@
     const mutual = userFriendIds.filter((id) => otherFriendIds.includes(id));
     return mutual.length;
   }
+
+
+  async function getMutualFriendsCounts(userIdRaw, otherUserIdRaw) {
+  const userId = Number(userIdRaw);
+  const otherUserId = Number(otherUserIdRaw);
+
+  if (!userId || !otherUserId || userId === otherUserId) {
+    return { count: 0, ids: [], friends: [] };
+  }
+
+  // Fetch all accepted friendships that involve either userId or otherUserId
+  const rows = await FriendRequest.findAll({
+    where: {
+      status: "accepted",
+      [Op.or]: [
+        { senderId: { [Op.in]: [userId, otherUserId] } },
+        { receiverId: { [Op.in]: [userId, otherUserId] } },
+      ],
+    },
+    attributes: ["senderId", "receiverId"],
+    raw: true,
+  });
+
+  const setA = new Set(); // friends of userId
+  const setB = new Set(); // friends of otherUserId
+
+  rows.forEach((r) => {
+    const s = Number(r.senderId);
+    const rcv = Number(r.receiverId);
+
+    if (s === userId && rcv !== userId) setA.add(rcv);
+    if (rcv === userId && s !== userId) setA.add(s);
+
+    if (s === otherUserId && rcv !== otherUserId) setB.add(rcv);
+    if (rcv === otherUserId && s !== otherUserId) setB.add(s);
+  });
+
+  // intersection
+  const mutualIds = [...setA].filter((id) => setB.has(id));
+
+  // fetch minimal info for mutual friends
+  let mutualFriends = [];
+  if (mutualIds.length > 0) {
+    mutualFriends = await User.findAll({
+      where: { id: { [Op.in]: mutualIds } },
+      attributes: ["id", "name", "image"],
+      raw: true,
+    });
+  }
+
+  return { count: mutualFriends.length, ids: mutualIds, friends: mutualFriends };
+}
 
   // 🔹 Send Friend Request
   module.exports.sendRequest = async (req, res) => {
@@ -151,27 +204,6 @@
     }
   };
 
-  // 🔹 Get Friends List (all accepted)
-  // module.exports.getFriends = async (req, res) => {
-  //   try {
-  //     //const { userId } = req.params;
-  //     const userId = req.user.id;
-  //     const friends = await FriendRequest.findAll({
-  //       where: {
-  //         status: "accepted",
-  //         [db.Sequelize.Op.or]: [{ senderId: userId }, { receiverId: userId }],
-  //       },
-  //       include: [
-  //         { model: User, as: "Sender", attributes: ["id", "name", "email", "image"] },
-  //         { model: User, as: "Receiver", attributes: ["id", "name", "email", "image"] },
-  //       ],
-  //     });
-
-  //     res.json(friends);
-  //   } catch (err) {
-  //     res.status(500).json({ error: err.message });
-  //   }
-  // };
 
   module.exports.getFriends = async (req, res) => {
   try {
@@ -246,103 +278,8 @@
     }
   };
 
-  // 🔹 Search Users (with friendship/request status)
-  // module.exports.searchUsers = async (req, res) => {
-  //   try {
-  //     const userId = req.user.id; // logged-in user
-  //     const { query } = req.query; // search term (name/email/username)
 
-  //     if (!query || query.trim() === "") {
-  //       return res.status(400).json({ error: "❌ Search query is required" });
-  //     }
-
-  //     // Find users by name (excluding self)
-  //     const users = await User.findAll({
-  //       where: {
-  //         id: { [db.Sequelize.Op.ne]: userId },
-  //         name: { [db.Sequelize.Op.like]: `%${query}%` },
-  //       },
-  //       attributes: ["id", "name", "email", "image"],
-  //     });
-
-  //     // Fetch all friend requests involving the logged-in user
-  //     const requests = await FriendRequest.findAll({
-  //       where: {
-  //         [db.Sequelize.Op.or]: [
-  //           { senderId: userId },
-  //           { receiverId: userId },
-  //         ],
-  //       },
-  //     });
-
-  //     // Map requests into quick lookup
-  //     const statusMap = {};
-  //     requests.forEach(req => {
-  //       const otherUserId = req.senderId === userId ? req.receiverId : req.senderId;
-  //       statusMap[otherUserId] = req.status === "accepted"
-  //         ? "friend"
-  //         : req.senderId === userId
-  //           ? "request_sent"
-  //           : "request_received";
-  //     });
-
-  //     // Attach status info to each searched user
-  //     // const result = users.map(user => ({
-  //     //   ...user.toJSON(),
-  //     //   status: statusMap[user.id] || "none", 
-  //     // }));
-
-  //     // Fetch all accepted friends of logged-in user (once)
-  //     const myFriends = await FriendRequest.findAll({
-  //       where: {
-  //         status: "accepted",
-  //         [db.Sequelize.Op.or]: [{ senderId: userId }, { receiverId: userId }],
-  //       },
-  //     });
-
-  //     const myFriendIds = myFriends.map((f) =>
-  //       f.senderId === userId ? f.receiverId : f.senderId
-  //     );
-
-  //     // Attach status + mutual friends count to each searched user
-  //     const result = await Promise.all(
-  //       users.map(async (user) => {
-  //         // Get this user’s friends
-  //         const theirFriends = await FriendRequest.findAll({
-  //           where: {
-  //             status: "accepted",
-  //             [db.Sequelize.Op.or]: [
-  //               { senderId: user.id },
-  //               { receiverId: user.id },
-  //             ],
-  //           },
-  //         });
-
-  //         const theirFriendIds = theirFriends.map((f) =>
-  //           f.senderId === user.id ? f.receiverId : f.senderId
-  //         );
-
-  //         // Count mutuals
-  //         const mutual = myFriendIds.filter((id) =>
-  //           theirFriendIds.includes(id)
-  //         ).length;
-
-  //         return {
-  //           ...user.toJSON(),
-  //           status: statusMap[user.id] || "none",
-  //           mutual,
-  //         };
-  //       })
-  //     );
-
-
-  //     res.json(result);
-  //   } catch (err) {
-  //     res.status(500).json({ error: err.message });
-  //   }
-  // };
-
-  // 🔹 Search Users (with friendship/request status)
+// 🔹 Search Users (with friendship/request status)
 
 module.exports.searchUsers = async (req, res) => {
   try {
@@ -452,10 +389,6 @@ module.exports.searchUsers = async (req, res) => {
 };
 
 
-
-
-// 🔹 Friend Suggestions (People You May Know)
-
 // 🔹 Friend Suggestions (People You May Know)
 module.exports.getSuggestions = async (req, res) => {
   try {
@@ -559,120 +492,11 @@ module.exports.getSuggestions = async (req, res) => {
 
 
 // 🔹 Get User Profile (with friendship + mutual info)
-// module.exports.getProfile = async (req, res) => {
-//   try {
-   
-//     const { userId } = req.params;  // target user
-//     const loggedInUserId = req.user.id;
-//      //console.log('id', userId,loggedInUserId);
-    
-
-//     if (parseInt(userId) === loggedInUserId) {
-//       return res.status(400).json({ error: "❌ Cannot fetch your own profile here" });
-//     }
-
-//     // ✅ Check if user exists
-//     const user = await User.findByPk(userId, {
-//       attributes: ["id", "name", "email", "image","description"],
-//     });
-//     if (!user) return res.status(404).json({ error: "❌ User not found" });
-
-//     // ✅ Check if blocked (either way)
-//     const block = await db.BlockUser.findOne({
-//       where: {
-//         [Op.or]: [
-//           { blockerId: loggedInUserId, blockedId: userId },
-//           { blockerId: userId, blockedId: loggedInUserId },
-//         ],
-//       },
-//     });
-//     if (block) {
-//       return res.status(403).json({ error: "❌ This user is blocked" });
-//     }
-
-//     // ✅ Check friendship status
-//     const request = await FriendRequest.findOne({
-//       where: {
-//         [Op.or]: [
-//           { senderId: loggedInUserId, receiverId: userId },
-//           { senderId: userId, receiverId: loggedInUserId },
-//         ],
-//       },
-//     });
-
-//     let status = "none";
-//     if (request) {
-//       if (request.status === "accepted") status = "friend";
-//       else if (request.status === "pending") {
-//         status =
-//           request.senderId === loggedInUserId ? "request_sent" : "request_received";
-//       } else if (request.status === "rejected") {
-//         status = "rejected";
-//       }
-//     }
-
-//     // ✅ Mutual friends count
-//     const mutual = await getMutualFriendsCount(loggedInUserId, userId);
-
-//     res.json({
-//       ...user.toJSON(),
-//       isFriend: status === "friend",
-//       status,
-//       mutual,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-// helper: count mutual friends
-async function getMutualFriends(loggedInUserId, otherUserId) {
-  // get accepted friends of logged-in user
-  const myFriends = await FriendRequest.findAll({
-    where: {
-      status: "accepted",
-      [Op.or]: [
-        { senderId: loggedInUserId },
-        { receiverId: loggedInUserId }
-      ]
-    }
-  });
-
-  const myFriendIds = myFriends.map(fr =>
-    fr.senderId === loggedInUserId ? fr.receiverId : fr.senderId
-  );
-
-  // get accepted friends of other user
-  const theirFriends = await FriendRequest.findAll({
-    where: {
-      status: "accepted",
-      [Op.or]: [
-        { senderId: otherUserId },
-        { receiverId: otherUserId }
-      ]
-    }
-  });
-
-  const theirFriendIds = theirFriends.map(fr =>
-    fr.senderId === otherUserId ? fr.receiverId : fr.senderId
-  );
-
-  // intersection = mutual friends
-  const mutualIds = myFriendIds.filter(id => theirFriendIds.includes(id));
-
-  // fetch minimal info for mutuals
-  const mutualFriends = await User.findAll({
-    where: { id: mutualIds },
-    attributes: ["id", "name", "image"]
-  });
-
-  return { count: mutualFriends.length, friends: mutualFriends };
-}
-
 module.exports.getProfile = async (req, res) => {
   try {
     const { userId } = req.params; // target user
     const loggedInUserId = req.user.id;
+    //console.log('id', userId, loggedInUserId);
 
     if (parseInt(userId) === loggedInUserId) {
       return res.status(400).json({ error: "❌ Cannot fetch your own profile here" });
@@ -721,7 +545,9 @@ module.exports.getProfile = async (req, res) => {
     }
 
     // ✅ get mutual friends
-    const { count: mutualCount, friends: mutualFriends } = await getMutualFriends(loggedInUserId, userId);
+  const { count: mutualCount, ids: mutualIds, friends: mutualFriends } =
+      await getMutualFriendsCounts(loggedInUserId, userId);
+
 
     res.json({
       ...user.toJSON(),
@@ -731,6 +557,7 @@ module.exports.getProfile = async (req, res) => {
       mutualCount,
       mutualFriends
     });
+    //console.log(res)
   } catch (err) {
     console.error("❌ getProfile Error:", err);
     res.status(500).json({ error: err.message });
