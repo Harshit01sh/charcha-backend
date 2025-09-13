@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 const db = require("../models/index.js");  // import full models (not just user.models.js)
 const nodemailer = require("nodemailer");
 const UAParser = require("ua-parser-js");
-const Block = db.Block;
+const Block = db.BlockUser;
 
 dotenv.config();
 
